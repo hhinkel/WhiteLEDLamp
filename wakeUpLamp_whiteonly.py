@@ -1,35 +1,53 @@
+''' Copyright 2021 Heidi Hinkel 
+
+Permission is hereby granted, free of charge, to any person obtaining a copy of this software
+and associated documentation files (the "Software"), to deal in the Software without restriction, including
+without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies
+of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following
+conditions:
+
+The above copyright notice and this permission notice shall be included in all copies or
+substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED
+TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
+THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF
+CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+DEALINGS IN THE SOFTWARE. '''
+
 from machine import Pin, PWM
 import machine
-import sys
 import network
 import utime
 import ntptime
 import uasyncio
-import neopixel
 
-#User constants
+# User constants
 SSID = 'SSID'
 PW = 'password'
-TIME_ZONE = -4   #hours from GMT. This is EDT (-5 is EST time)
-LIT_LENGTH = 3600 #Seconds at brightest setting 
-WAKEUP_TUPLE = (04, 45)  #time lights come on in 24hr format, hour and minute
-PIN = 27 #Pin that connects the lights to the microcontroller
-FULL_BRIGHTNESS = 1023 #100 % duty cycle for the LEDs  
+TIME_ZONE = -4  # hours from GMT. This is EDT (-5 is EST time)
+SEC_IN_HOUR = 3600 #Seconds in an hour
+LIT_LENGTH = 2  # Hours at brightest setting
+WAKEUP_TUPLE = (4, 45)  # time lights come on in 24hr format, hour and minute
+PIN = 27  # Pin that connects the lights to the microcontroller
+FULL_BRIGHTNESS = 1023  # 100 % duty cycle for the LEDs
+
 
 async def setup(led):
-    ''' Test the LEDs, set the clock for the first time and get the wake up time.
+    """ Test the LEDs, set the clock for the first time and get the wake up time.
     Arguments:
         led - pin object
     Local Variables:
         None
     Returns:
-        Nothing '''
+        Nothing """
     await fade(led)
     updateRTCFromNTP(led)
 
+
 def updateRTCFromNTP(led):
-    ''' Update the microcontrollers real time clock (RTC) from
-        network time protocol (NTP) servers. The RTC of the ESP8266 is notoriouly inaccurate.
+    """ Update the microcontrollers real time clock (RTC) from
+        network time protocol (NTP) servers. The RTC of the ESP8266 is notoriously inaccurate.
         https://docs.micropython.org/en/latest/esp8266/general.html#real-time-clock
     Arguments:
         led - pin object (for flashing if can not connect to NTP server)
@@ -37,19 +55,19 @@ def updateRTCFromNTP(led):
         wifi - wifi object
         localTime - as a time tuple (see setup)
     Returns:
-        Nothing '''
+        Nothing """
     wifi = connectToWifi(led)
     try:
         ntptime.settime()
     except OSError:
-        #flash lights three times if cannot connect to NTP server
-        flash(led, 4, FULL_BRIGHTNESS)        
+        flash(led, 4, FULL_BRIGHTNESS)
         machine.reset()
     localTime = getLocalTime()
     disconnectFromWifi(wifi)
 
+
 def flash(led, num, dutyCycle):
-    ''' Flash the led strip the designated number of times
+    """ Flash the led strip the designated number of times
     Arguments:
         led - Pin object
         num - number of times to flash the led strip
@@ -57,54 +75,58 @@ def flash(led, num, dutyCycle):
     Local Variables:
         i - counter
     Returns:
-        Nothing '''
-    pwmLED = PWM(led, freq = 5000)
-    for i in range(0, num-1):
+        Nothing """
+    pwmLED = PWM(led, freq=5000)
+    for i in range(0, num - 1):
         utime.sleep(0.5)
         pwmLED.duty(dutyCycle)
         utime.sleep(0.5)
         pwmLED.duty(0)
-    pwmLED.deinit()    
+    pwmLED.deinit()
+
 
 def connectToWifi(led):
-    ''' Setup the wifi object and connect to the network defined above
+    """ Setup the wifi object and connect to the network defined above
     Arguments:
         led - pin object
     Local Variables:
         wifi - network object
     Returns:
-        wifi - network object '''
+        wifi - network object """
     wifi = network.WLAN(network.STA_IF)
     wifi.active(True)
-    wifi.connect(SSID,PW)
+    wifi.connect(SSID, PW)
     while not wifi.isconnected():
         flash(led, 2, 100)
         pass
     return wifi
 
+
 def disconnectFromWifi(wifi):
-    ''' Disconnect from wifi
+    """ Disconnect from wifi
     Arguments:
         wifi - network object
     Local Variables:
         None
     Returns:
-        Nothing '''
+        Nothing """
     wifi.disconnect()
     wifi.active(False)
 
+
 def getLocalTime():
-    ''' Get local Time
+    """ Get local Time
     Arguments:
         None
     Local Variables:
         None
     Returns:
-        local time tuple '''
-    return (utime.localtime(utime.time() + TIME_ZONE * 3600))
+        local time tuple """
+    return utime.localtime(utime.time() + TIME_ZONE * SEC_IN_HOUR)
+
 
 async def clock(led):
-    ''' processing loop. Loop continuosly. Keep track of the time, when the wakeup
+    """ processing loop. Loop continuosly. Keep track of the time, when the wakeup
         time comes around set off the lights. Every 6 hours query the time NTP server
         and update the microcontrollers clock.
     Arguments:
@@ -112,17 +134,18 @@ async def clock(led):
     Local Variables:
         hourMin - the current hour and minute
     Returns:
-        Nothing '''
+        Nothing """
     while True:
         hourMin = getLocalTime()[3:5]
         if hourMin == WAKEUP_TUPLE:
-            await fade(led, LIT_LENGTH)
+            await fade(led, LIT_LENGTH * SEC_IN_HOUR)
         if hourMin == (0, 0) or hourMin == (6, 0) or hourMin == (12, 0) or hourMin == (18, 0):
             updateRTCFromNTP(led)
-        utime.sleep(30)        
-               
-async def fade(led, litTime = 1, t = 0.005):
-    ''' Setup the pulse width modulated (PWM) object and
+        utime.sleep(30)
+
+
+async def fade(led, litTime=1, t=0.005):
+    """ Setup the pulse width modulated (PWM) object and
         fade the single color led strip once. Signal frequency (freq) can be
         from 0 to 78125. dutyCycle controls the brightness and varies between
         0 and FULL_BRIGHTNESS. FULL_BRIGHTNESS is a 100% duty cycle
@@ -134,8 +157,8 @@ async def fade(led, litTime = 1, t = 0.005):
         pwmLED - PWM object
         dutyCycle - looping variable indicating what the current dudty cycle is
     Returns:
-        Nothing '''
-    pwmLED = PWM(led, freq = 5000)
+        Nothing """
+    pwmLED = PWM(led, freq=5000)
     for dutyCycle in range(0, FULL_BRIGHTNESS):
         pwmLED.duty(dutyCycle)
         utime.sleep(t)
@@ -143,20 +166,20 @@ async def fade(led, litTime = 1, t = 0.005):
     for dutyCycle in range(FULL_BRIGHTNESS, 0, -1):
         pwmLED.duty(dutyCycle)
         utime.sleep(t)
-    pwmLED.deinit()    
-         
+    pwmLED.deinit()
+
 def main():
-    ''' Setup Pin object, run setup function and start the processing loop
+    """ Setup Pin object, run setup function and start the processing loop (clock)
     Arguments:
         None
     Local Variables:
         led - Pin object
     Returns:
-        Nothing '''
+        Nothing """
     led = Pin(PIN, Pin.OUT)
     uasyncio.run(setup(led))
     uasyncio.run(clock(led))
-    
+
+
 if __name__ == '__main__':
     main()
-    
