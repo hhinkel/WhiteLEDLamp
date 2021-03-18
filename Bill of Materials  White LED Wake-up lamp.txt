@@ -3,13 +3,14 @@ White LED Wake-up Lamp
 
 
 1. 1 ESP32 DEV Kit V1 microcontroller 
-You can get these cheaper if you buy more than 1
-2. 1 Strip of White LEDS 5V at a density of 60 leds/m
-Make sure that you get 5V lights anything more than that can not be powered without an outside power source
-3. 2 Butt end wire connectors 22 ga
-4. ~4 inches of 22 ga solid core hookup wire
-5. 1 30A 60V N-Channel Power Mosfet TO-220
-6. 1 10K Ohm resistor 1/2W
-7. 1 32 oz Chinese food container
-While I bought these from Amazon you can probably get one from you local restaurant next time you order take out.
-8. 1 Empty Toilet paper tube
+   You can get these cheaper if you buy more than 1
+2. 2 170 Tie point solderless breadboards
+3. 1 Strip of White LEDS 5V at a density of 60 leds/m
+   Make sure that you get 5V lights anything more than that can not be powered without an outside power source
+4. 2 Butt end wire connectors 22 ga
+5. ~4 inches of 22 ga solid core hookup wire
+6. 1 30A 60V N-Channel Power Mosfet TO-220
+7. 1 10K Ohm resistor 1/2W
+8. 1 32 oz Chinese food container
+   While I bought these from Amazon you can probably get one from your local restaurant next time you order take out.
+9. 1 Empty Toilet paper tube
